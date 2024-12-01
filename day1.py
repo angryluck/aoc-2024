@@ -1,5 +1,6 @@
 from aocd import get_data
 
+# Data
 data = get_data(year=2024, day=1)
 
 test = """
@@ -11,10 +12,13 @@ test = """
 3   3
 """
 
+# Convert data to workable list
 def parse(text:str) -> ([int],[int]):
     all_vals = [int(i) for i in text.split()]
     return sorted(all_vals[::2]), sorted(all_vals[1::2])
 
+
+# Part 1
 def total_distance(xs:[int], ys:[int]) -> int:
     return sum(abs(x-y) for (x,y) in zip(xs, ys))
 
@@ -25,6 +29,8 @@ def part1(text:str) -> int:
 print(part1(test))
 print(part1(data))
 
+
+# Part 2
 def similarity(x:int, xs:[int]) -> int:
     return x * xs.count(x)
 
