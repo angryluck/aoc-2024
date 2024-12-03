@@ -15,8 +15,8 @@ def parse(text:str):
 def part1(text:str) -> int:
     return
 
-print(part1(test))
-print(part1(data))
+# print(part1(test))
+# print(part1(data))
 
 
 # Part 2
@@ -24,5 +24,5 @@ print(part1(data))
 def part2(text:str) -> int:
     return
 
-print(part2(test))
-print(part2(data))
+# print(part2(test))
+# print(part2(data))
