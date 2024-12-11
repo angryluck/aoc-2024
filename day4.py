@@ -77,7 +77,7 @@ def part1(text:str) -> int:
     # return
 
 print(part1(test))
-# print(part1(data))
+print(part1(data))
 
 
 # Part 2
