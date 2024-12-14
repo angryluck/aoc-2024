@@ -9,6 +9,7 @@ from pyparsing import (
     nums,
     pyparsing_common,
 )
+from pyparsing import ParseResults
 
 # Data
 data = get_data(year=2024, day=3)
@@ -21,37 +22,43 @@ pp.ParserElement.set_default_whitespace_chars("")
 
 # Shorthand
 lpar, rpar, comma = map(Suppress, "(),")
-num = Word(nums,max=3).setParseAction(pyparsing_common.convertToInteger)
+num = Word(nums, max=3).setParseAction(pyparsing_common.convertToInteger)
 pair = (lpar + num + comma + num + rpar).setParseAction(lambda t: (t[0], t[1]))
 mul = Suppress("mul") + pair
 
 skip = Suppress(CharsNotIn("m"))
 m = Suppress(Char("m"))
-parser = (skip | mul | m)[1,...]
+parser = (skip | mul | m)[1, ...]
 
 
 # Convert data (text) to workable input
-def parse(text:str) -> [(int,int)]:
-    return parser.parseString(text)
+def parse(text: str) -> list[tuple[int, int]]:
+    # parser.parseString(text) is ParseResults type
+    return list(parser.parseString(text))
 
-def part1(text:str) -> int:
+
+def part1(text: str) -> int:
     vals = parse(text)
-    return sum(x*y for (x,y) in vals)
+    return sum(x * y for (x, y) in vals)
+
 
 print(part1(test))
 print(part1(data))
 
 
 # Part 2
-test2="xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))"
+test2 = (
+    "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))"
+)
 do = Literal("do()")
 dont = Literal("don't()")
 
 skip2 = Suppress(CharsNotIn("md"))
 md = Suppress(Char("md"))
-parser2 = (skip2 | do | dont | mul | md)[1,...]
+parser2 = (skip2 | do | dont | mul | md)[1, ...]
 
-def part2(text:str) -> int:
+
+def part2(text: str) -> int:
     vals = parser2.parseString(text)
     enabled = True
     total = 0
@@ -64,9 +71,10 @@ def part2(text:str) -> int:
             enabled = False
             continue
         if enabled:
-            x,y = t[0], t[1]
-            total += x*y
+            x, y = t[0], t[1]
+            total += x * y
     return total
+
 
 print(part2(test2))
 print(part2(data))

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from aocd import get_data
 
 # Data
@@ -7,11 +9,12 @@ test = """\
 2333133121414131402\
 """
 
+type Disk1 = list[int | str]
 
 
 # Convert data (text) to workable input
-def parse(text:str) -> []:
-    total = [] # The output-string as a list
+def parse(text: str) -> Disk1:
+    total = []  # The output-string as a list of ints
     is_file = True
     ID = 0
     for char in text:
@@ -22,14 +25,16 @@ def parse(text:str) -> []:
         is_file = not is_file
     return total
 
-def swap(i1:int, i2:int, total:[]) -> ():
+
+def swap(i1: int, i2: int, total: list) -> None:
     tmp1 = total[i1]
     tmp2 = total[i2]
     total[i2] = tmp1
     total[i1] = tmp2
 
-def order(total:[]) -> ():
-    end = len(total)-1
+
+def order(total: Disk1) -> None:
+    end = len(total) - 1
     start = 0
     while total[start] != ".":
         start += 1
@@ -40,22 +45,22 @@ def order(total:[]) -> ():
         while total[end] == ".":
             end -= 1
 
-def checksum(total:[]) -> ():
-    vals = [0 if c == "." else c for c in total]
-    return sum(i*v for i,v in enumerate(vals))
+
+def checksum(total: Disk1) -> int:
+    # 'int(c)' is not needed, but type checker complains otherwise
+    vals = [0 if c == "." else int(c) for c in total]
+    return sum(i * v for i, v in enumerate(vals))
 
 
 # Part 1
-
-def part1(text:str) -> int:
+def part1(text: str) -> int:
     total = parse(text)
     order(total)
     return checksum(total)
 
+
 print("Part 1 test:", part1(test))
 print("Part 1 real:", part1(data))
-
-
 
 
 # Part 2
@@ -69,8 +74,9 @@ class File:
     def __str__(self) -> str:
         return str(self.ID)
 
-    def vals(self) -> [int]:
+    def vals(self) -> list[int]:
         return [self.ID for _ in range(self.count)]
+
 
 class Free:
     def __init__(self, val: int) -> None:
@@ -85,7 +91,10 @@ class Free:
         return [0 for _ in range(self.count)]
 
 
-def parse2(text:str)->[]:
+type Disk = list[File | Free]
+
+
+def parse2(text: str) -> Disk:
     disk = []
     is_file = True
     index = 0
@@ -100,12 +109,15 @@ def parse2(text:str)->[]:
         is_file = not is_file
     return disk
 
+
 disk = parse2(test)
-def disk_to_str(disk:[]) -> str:
+
+
+def disk_to_str(disk: Disk) -> str:
     return "".join(str(d) for d in disk)
 
 
-def insert(disk:[], index: int)->None:
+def insert(disk: Disk, index: int) -> None:
     file = disk[index]
     if file.is_free:
         return
@@ -124,23 +136,25 @@ def insert(disk:[], index: int)->None:
 # total = sum((i*v) for i,v in enumerate(vals))
 # print(total)
 
-def checksum2(total:str) -> int:
-    vals = [0 if c == "." else int(c) for c in total]
-    return sum(i*v for i,v in enumerate(vals))
 
-def checksum3(disk:[]) -> int:
+def checksum2(total: str) -> int:
+    vals = [0 if c == "." else int(c) for c in total]
+    return sum(i * v for i, v in enumerate(vals))
+
+
+def checksum3(disk: Disk) -> int:
     # NOTE: Slightly stupid hack here, utilizing that I defined a 'vals'
     # function for both File and Free. Preferably should use some if-else
     # statement here
     vals_nested = [d.vals() for d in disk]
     vals = [val for d in vals_nested for val in d]
-    return sum(i*v for i,v in enumerate(vals))
+    return sum(i * v for i, v in enumerate(vals))
 
 
-def part2(text:str) -> int:
+def part2(text: str) -> int:
     disk = parse2(text)
     # remove_index = len(disk)-1
-    for i in range(len(disk)-1, -1, -1):
+    for i in range(len(disk) - 1, -1, -1):
         if disk[i].is_free:
             continue
         # file = disk.pop(i)
@@ -148,6 +162,7 @@ def part2(text:str) -> int:
         print("Index:", i, "\r", end="")
     # print(disk_to_str(disk))
     return checksum3(disk)
+
 
 print("Part 2 test:", part2(test))
 print("Part 2 real:", part2(data))

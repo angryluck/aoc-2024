@@ -12,34 +12,40 @@ test = """
 3   3
 """
 
+
 # Convert data to workable list
-def parse(text:str) -> ([int],[int]):
+def parse(text: str) -> tuple[list[int], list[int]]:
     all_vals = [int(i) for i in text.split()]
     return sorted(all_vals[::2]), sorted(all_vals[1::2])
 
 
 # Part 1
-def total_distance(xs:[int], ys:[int]) -> int:
-    return sum(abs(x-y) for (x,y) in zip(xs, ys))
+def total_distance(xs: list[int], ys: list[int]) -> int:
+    return sum(abs(x - y) for (x, y) in zip(xs, ys))
 
-def part1(text:str) -> int:
+
+def part1(text: str) -> int:
     (l1, l2) = parse(text)
     return total_distance(l1, l2)
+
 
 print(part1(test))
 print(part1(data))
 
 
 # Part 2
-def similarity(x:int, xs:[int]) -> int:
+def similarity(x: int, xs: list[int]) -> int:
     return x * xs.count(x)
 
-def total_similarity(xs:[int], ys:[int]) -> int:
-    return sum(similarity(x,ys) for x in xs)
 
-def part2(text:str) -> int:
+def total_similarity(xs: list[int], ys: list[int]) -> int:
+    return sum(similarity(x, ys) for x in xs)
+
+
+def part2(text: str) -> int:
     (l1, l2) = parse(text)
     return total_similarity(l1, l2)
+
 
 print(part2(test))
 print(part2(data))
