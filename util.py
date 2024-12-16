@@ -1,9 +1,9 @@
-# Util functions for advent-of-code problems
+"""Util functions for advent-of-code problems."""
+
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable
-
 from itertools import product
+from typing import Any, Callable
 
 type Entry = str | int
 type Parse = Callable[
@@ -17,6 +17,12 @@ def add(index1: Index, index2: Index) -> Index:
     i1, j1 = index1
     i2, j2 = index2
     return (i1 + i2, j1 + j2)
+
+
+def sub(index1: Index, index2: Index) -> Index:
+    i1, j1 = index1
+    i2, j2 = index2
+    return (i1 - i2, j1 - j2)
 
 
 class Matrix:
