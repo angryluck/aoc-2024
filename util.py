@@ -1,7 +1,9 @@
 # Util functions for advent-of-code problems
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
+
+from itertools import product
 
 type Entry = str | int
 type Parse = Callable[
@@ -27,6 +29,7 @@ class Matrix:
         self.rows = len(self.matrix)
         self.cols = len(self.matrix[0])
         self.is_wrap = is_wrap
+        self.indices = product(range(self.cols), range(self.rows))
 
     # Pretty printing
     def __str__(self) -> str:
