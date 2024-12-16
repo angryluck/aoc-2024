@@ -1,3 +1,5 @@
+from typing import Any
+
 from aocd import get_data
 
 # Data
@@ -8,7 +10,7 @@ test = """\
 
 
 # Convert data (text) to workable input
-def parse(text: str):
+def parse(text: str) -> Any:
     return
 
 
@@ -16,7 +18,7 @@ def parse(text: str):
 
 
 def part1(text: str) -> int:
-    return
+    return 0
 
 
 # print("Part 1 test:", part1(test))
@@ -27,7 +29,7 @@ def part1(text: str) -> int:
 
 
 def part2(text: str) -> int:
-    return
+    return 0
 
 
 # print("Part 2 test:", part2(test))
