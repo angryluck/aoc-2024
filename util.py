@@ -45,12 +45,19 @@ class Matrix:
         (i, j) = index
         return (0 <= i < self.cols) and (0 <= j < self.rows)
 
+        # Rename to 'set'
+
     def entry(self, index: Index) -> MatrixVal | None:
         """Get entry of matrix at given entry, if applicable."""
         i, j = index[0] if len(index) == 1 else index
         if self.is_valid_index((i, j)):
             return self.matrix[j][i]
         return None
+
+    def set(self, index: Index, val: MatrixVal) -> None:
+        """Ok."""
+        i, j = index
+        self.matrix[j][i] = val
 
     def entry_ij(self, i: int, j: int) -> MatrixVal | None:
         # Entry passing indices directly, rather than as a tuple
@@ -70,3 +77,14 @@ class Matrix:
     #     if self.entry(new_index) is None:
     #         return None
     #     return new_index
+
+
+def print_path(maze: Matrix, indices: set[Index]) -> None:
+    # To show a given path
+    for j in range(maze.rows):
+        for i in range(maze.cols):
+            if (i, j) in indices:
+                print("O", end="")
+            else:
+                print(maze.entry_ij(i, j), end="")
+        print()
