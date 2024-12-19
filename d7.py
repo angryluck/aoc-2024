@@ -16,8 +16,8 @@ test = """\
 
 type Equation = tuple[int, list[int]]
 
-for c in range(ord("a"), ord("z")):
-    print(chr(c))
+# for c in range(ord("a"), ord("z")):
+#     print(chr(c))
 
 
 # Convert data (text) to workable input
@@ -44,8 +44,6 @@ def is_valid(eq: Equation) -> bool:
 
 
 # Part 1
-
-
 def part1(text: str) -> int:
     equations = parse(text)
     return sum(eq[0] for eq in equations if is_valid(eq))

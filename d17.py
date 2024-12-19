@@ -335,13 +335,77 @@ def print_register(register: RegisterState) -> None:
     print()
 
 
-vals: list[int] = []
-execute_with_state = partial(execute, test_reg, vals)
-pointer = 0
-for _ in range(10):
-    print(commands[pointer])
-    pointer = execute_with_state(commands[pointer], pointer)
-    print_register(test_reg)
+# vals: list[int] = []
+# execute_with_state = partial(execute, test_reg, vals)
+# pointer = 0
+# for _ in range(10):
+#     print(commands[pointer])
+#     pointer = execute_with_state(commands[pointer], pointer)
+#     print_register(test_reg)
+
+
+def hack(A: int) -> tuple[int, int]:
+    # Computed by looking at the output (Program:
+    # 2,4,1,5,7,5,1,6,0,3,4,6,5,5,3,0) manually. Note that B and C have no
+    # influence on the output, and no influence on the next iteration. So we can
+    # just given a value of A return the next value of A, and the output.
+    A_new = A // 8  # Backwards -> Just multiply by 8
+    output = ((A % 8) ^ 3) ^ (A // (2 ** (A % 8 ^ 5))) % 8
+
+    return (A_new, output)
+
+
+data_string = "2,4,1,5,7,5,1,6,0,3,4,6,5,5,3,0"
+data_list = list(map(int, data_string.split(",")))
+rev_data_list = list(reversed(data_list))
+print(data_list)
+
+
+# Only 8 possible values we end on: 0-7. One of these must work, so work
+# backwards from these!
+print(rev_data_list)
+
+
+def hack2(A: int) -> int:
+    return hack(A)[1]
+
+
+def find_lowest() -> None:
+    A = 0
+    a_vals = []
+    for i in range(len(rev_data_list)):
+        count = 0
+        while hack2(A) != rev_data_list[i]:  # Max 7 iterations allowed!
+            A += 1
+            count += 1
+        a_vals.append(A)
+        A *= 8
+    for a in a_vals:
+        hack(a)
+
+
+def find_lowest_rec(A: int = 0, rec_count: int = 0) -> int:
+    if rec_count == len(rev_data_list):
+        return A
+    A *= 8
+    for i in range(8):
+        val = hack2(A + i)
+        if val == rev_data_list[rec_count]:
+            ret_val = find_lowest_rec(A + i, rec_count + 1)
+            if ret_val != -1:
+                return ret_val
+    return -1
+
+
+A = find_lowest_rec()
+print(
+    f"Solution to part 2: {A}\n"
+    "(Only works on the specific input given, namely "
+    "'2,4,1,5,7,5,1,6,0,3,4,6,5,5,3,0')"
+)
+while A != 0:
+    (A, val) = hack(A)
+    print(f"new_A={A}, val={val}")
 
 # print("Part 2 test:", part2(testpt2))
 # print("Part 2 real:", part2(data))
