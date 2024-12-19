@@ -67,7 +67,7 @@ def path(maze: Matrix) -> tuple[set[Index], int]:
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 
     # Add as needed instead"
-    unvisited: set[Index] = {i for i in maze.indices if maze.entry(i) != "#"}
+    unvisited: set[Index] = {i for i in maze.indices() if maze.entry(i) != "#"}
     min_cost: dict[Index, int] = {start: 0}
     best_path: dict[Index, set[Index]] = {start: {start}}
 

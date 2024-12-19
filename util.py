@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from itertools import product
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 type Entry = str | int
 type Parse = Callable[
@@ -25,6 +25,11 @@ def sub(index1: Index, index2: Index) -> Index:
     return (i1 - i2, j1 - j2)
 
 
+def scale(r: int, index: Index) -> Index:
+    (i, j) = index
+    return (r * i, r * j)
+
+
 class Matrix:
     # We assume the matrix is regular (each row same length)
     # For now, only works if each 'field' is one character
@@ -35,11 +40,13 @@ class Matrix:
         self.rows = len(self.matrix)
         self.cols = len(self.matrix[0])
         self.is_wrap = is_wrap
-        self.indices = product(range(self.cols), range(self.rows))
 
     # Pretty printing
     def __str__(self) -> str:
         return "\n".join("".join(str(x) for x in row) for row in self.matrix)
+
+    def indices(self) -> Iterator:
+        return product(range(self.cols), range(self.rows))
 
     def is_valid_index(self, index: Index) -> bool:
         (i, j) = index
@@ -79,12 +86,12 @@ class Matrix:
     #     return new_index
 
 
-def print_path(maze: Matrix, indices: set[Index]) -> None:
+def print_path(maze: Matrix, indices: set[Index], char: str = "O") -> None:
     # To show a given path
     for j in range(maze.rows):
         for i in range(maze.cols):
             if (i, j) in indices:
-                print("O", end="")
+                print(char, end="")
             else:
                 print(maze.entry_ij(i, j), end="")
         print()

@@ -56,7 +56,7 @@ def parse(text: str) -> tuple[Matrix, Index, Index]:
     maze = Matrix(text)
     start = (-1, -1)
     end = (-1, -1)
-    for index in maze.indices:
+    for index in maze.indices():
         if maze.entry(index) == "S":
             start = index
         if maze.entry(index) == "E":
@@ -81,7 +81,7 @@ def rotate_right(index: Index) -> Index:
 def path_1(maze: Matrix, start: Index) -> dict[Index, int]:
     """Compute shortest path using disjktra's algorithm."""
     # Naive recursion was too slow
-    unvisited: set[Index] = {i for i in maze.indices if maze.entry(i) != "#"}
+    unvisited: set[Index] = {i for i in maze.indices() if maze.entry(i) != "#"}
     min_cost: dict[Index, int] = {i: sys.maxsize for i in unvisited}
     best_direction: dict[Index, Index] = {start: (1, 0)}
     min_cost[start] = 0
@@ -137,7 +137,10 @@ def path_2(
 
     # Unvisited: set tuples of position, and direction when entering
     unvisited: set[Step] = {
-        (i, d) for i in maze.indices if maze.entry(i) != "#" for d in directions
+        (i, d)
+        for i in maze.indices()
+        if maze.entry(i) != "#"
+        for d in directions
     }
     min_cost: dict[Step, int] = {p: sys.maxsize for p in unvisited}
     best_path: dict[Step, set[Index]] = {(start, (1, 0)): {start}}
@@ -185,7 +188,10 @@ def path_3(
 
     # Add as needed instead"
     unvisited: set[Step] = {
-        (i, d) for i in maze.indices if maze.entry(i) != "#" for d in directions
+        (i, d)
+        for i in maze.indices()
+        if maze.entry(i) != "#"
+        for d in directions
     }
     min_cost: dict[Step, int] = {(start, (1, 0)): 0}
     best_path: dict[Step, set[Index]] = {(start, (1, 0)): {start}}
