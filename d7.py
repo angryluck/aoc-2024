@@ -16,9 +16,6 @@ test = """\
 
 type Equation = tuple[int, list[int]]
 
-# for c in range(ord("a"), ord("z")):
-#     print(chr(c))
-
 
 # Convert data (text) to workable input
 def parse_line(text: str) -> Equation:
@@ -35,7 +32,6 @@ def parse(text: str) -> list[Equation]:
 def is_valid(eq: Equation) -> bool:
     val, nums = eq
     possible_vals = {nums[0]}
-    concat_vals = [nums[0]]
     for num in nums[1:]:
         new_add = {x + num for x in possible_vals}
         new_mult = {x * num for x in possible_vals}
@@ -57,12 +53,12 @@ print("Part 1 real:", part1(data))
 def is_valid_2(eq: Equation) -> bool:
     val, nums = eq
     possible_vals = {nums[0]}
-    prev_val = nums[0]
     for num in nums[1:]:
         new_add = {x + num for x in possible_vals}
         new_mult = {x * num for x in possible_vals}
         ## SHOULDNT CONCAT THE WHOLE THING! ...
-        new_concat = {int(str(x) + str(num)) for x in possible_vals}  # WRONG
+        # Nvm, misread the task, lolol
+        new_concat = {int(str(x) + str(num)) for x in possible_vals}
         possible_vals = new_add | new_mult | new_concat
     return val in possible_vals
 
@@ -72,5 +68,5 @@ def part2(text: str) -> int:
     return sum(eq[0] for eq in equations if is_valid_2(eq))
 
 
-# print("Part 2 test:", part2(test))
-# print("Part 2 real:", part2(data))
+print("Part 2 test:", part2(test))
+print("Part 2 real:", part2(data))
