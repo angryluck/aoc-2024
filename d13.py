@@ -1,6 +1,8 @@
 from aocd import get_data
+from numpy._typing import NDArray
 import pyparsing
-from pyparsing import Char, DelimitedList, Suppress, Literal
+from pyparsing import Char, Suppress, Literal
+import numpy as np
 
 # Data
 data = get_data(year=2024, day=13)
@@ -28,19 +30,45 @@ def parse(text: str):
     button = Suppress(Literal("Button") + Char("AB") + Literal(":"))
     prize = Suppress(Literal("Prize:"))
     val = Suppress(Char("XY") + Char("+=")) + pyparsing.common.integer
-    xy = DelimitedList(val)
+    xy = val + Suppress(",") + val
     button_line = button + xy
     prize_line = prize + xy
-    block = button_line + button_line + prize_line
-    lines = text.split("\n\n")
-    return [block.parseString(line) for line in lines]
+    parse_block = button_line + button_line + prize_line
+    blocks = text.split("\n\n")
+    res = []
+    for block in blocks:
+        nums = parse_block.parseString(block)
+        matrix = np.array(nums[:4]).reshape(2, 2).T
+        prize = np.array(nums[4:]).reshape(2, 1)
+        res.append((matrix, prize))
+    return res
 
 
-# Part 1
+gg = parse(test)
+# tm, tx = gg[1]
+# print(tm, tx)
+# print(np.linalg.inv(tm))
+
+
+def tokens(block):
+    tm, tx = block
+    vals = np.linalg.inv(tm) @ tx
+    if all(np.allclose(x, np.round(x)) for x in vals):
+        token_price = np.array([3, 1]).reshape(2, 1)
+        return round((vals.T @ token_price).item())
+    return 0
+
+
+G = 10000000000000
+
+# First array: 2x2 matrix of cost pr. button
+# Second array: 2-vector of end-prize
+type Block = tuple[NDArray, NDArray]
 
 
 def part1(text: str) -> int:
-    return 0
+    blocks = parse(text)
+    return sum(tokens(x) for x in blocks)
 
 
 # print("Part 1 test:", part1(test))
@@ -48,11 +76,43 @@ def part1(text: str) -> int:
 
 
 # Part 2
+def parse2(text: str) -> list[tuple[NDArray, NDArray]]:
+    button = Suppress(Literal("Button") + Char("AB") + Literal(":"))
+    prize = Suppress(Literal("Prize:"))
+    val = Suppress(Char("XY") + Char("+=")) + pyparsing.common.integer
+    xy = val + Suppress(",") + val
+    button_line = button + xy
+    prize_line = prize + xy
+    parse_block = button_line + button_line + prize_line
+    blocks = text.split("\n\n")
+    res = []
+    for block in blocks:
+        nums = parse_block.parseString(block)
+        matrix = np.array(nums[:4], dtype=np.float64).reshape(2, 2).T
+        prize = np.array(nums[4:], dtype=np.float64).reshape(2, 1)
+        prize += 10000000000000
+        res.append((matrix, prize))
+    return res
 
 
-def part2(text: str) -> int:
+def tokens2(block):
+    tm, tx = block
+    vals = np.linalg.inv(tm) @ tx
+    fracs = np.modf(vals)[0]
+    if all(np.isclose(x, 0, 0.01, 0.01) or np.isclose(x, 1, 0.01, 0.01) for x in fracs):
+        token_price = np.array([3, 1]).reshape(2, 1)
+        ret = (vals.T @ token_price).item()
+        return round(ret)
     return 0
 
 
-# print("Part 2 test:", part2(test))
-# print("Part 2 real:", part2(data))
+def part2(text: str) -> int:
+    blocks = parse2(text)
+    # for x in blocks:
+    # print(tokens2(x))
+    return sum(tokens2(x) for x in blocks)
+    # return sum(tokens(x) for x in blocks)
+
+
+print("Part 2 test:", part2(test))
+print("Part 2 real:", part2(data))

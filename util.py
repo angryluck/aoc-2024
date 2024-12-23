@@ -6,9 +6,7 @@ from itertools import product
 from typing import Any, Callable, Iterator
 
 type Entry = str | int
-type Parse = Callable[
-    [str], Entry
-]  # Parsing characters should be an int or char
+type Parse = Callable[[str], Entry]  # Parsing characters should be an int or char
 type Index = tuple[int, int]
 type MatrixVal = Any
 
@@ -86,12 +84,12 @@ class Matrix:
     #     return new_index
 
 
-def print_path(maze: Matrix, indices: set[Index], char: str = "O") -> None:
+def print_path(maze: Matrix, indices: set[Index], char: str = "O", file=None) -> None:
     # To show a given path
     for j in range(maze.rows):
         for i in range(maze.cols):
             if (i, j) in indices:
-                print(char, end="")
+                print(char, end="", file=file)
             else:
-                print(maze.entry_ij(i, j), end="")
-        print()
+                print(maze.entry_ij(i, j), end="", file=file)
+        print(file=file)
