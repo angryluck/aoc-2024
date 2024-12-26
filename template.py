@@ -21,8 +21,8 @@ def part1(text: str) -> int:
     return 0
 
 
-# print("Part 1 test:", part1(test))
-# print("Part 1 real:", part1(data))
+# print(f"Part 1 test:\n{part1(test)}")
+# print(f"Part 1 real:\n{part1(data)}")
 
 
 # Part 2
@@ -32,5 +32,5 @@ def part2(text: str) -> int:
     return 0
 
 
-# print("Part 2 test:", part2(test))
-# print("Part 2 real:", part2(data))
+# print(f"Part 2 test:\n{part2(test)}")
+# print(f"Part 2 real:\n{part2(data)}")
