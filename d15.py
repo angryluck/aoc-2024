@@ -1,7 +1,9 @@
+from __future__ import annotations
 from functools import partial
-from typing import Any
-from util import Matrix, print_path
+
 from aocd import get_data
+
+from util import Matrix
 
 # Data
 data = get_data(year=2024, day=15)
@@ -81,8 +83,7 @@ def add(p: Position, d: Direction) -> Position:
 
 
 def move(matrix: Matrix, d: Direction, robot_pos: Position) -> Position:
-    """Tries to move boxes, but changes nothing if impossible. Returns new
-    robot position."""
+    """Move boxes in direction if possible, and return new robot position."""
     next_pos = add(robot_pos, d)
     free_pos = next_pos
     while matrix.entry(free_pos) == "O":
@@ -109,7 +110,7 @@ def part1(text: str) -> int:
     mover = partial(move, maze)
     for i in instructions:
         robot_pos = mover(i, robot_pos)
-    box_coordinates = set(i for i in maze.indices() if maze.entry(i) == "O")
+    box_coordinates = {i for i in maze.indices() if maze.entry(i) == "O"}
     return sum(gps_coordinate(x) for x in box_coordinates)
 
 
@@ -149,6 +150,127 @@ def parse2(
     return matrix, walls, robot_pos, boxes, directions
 
 
+class BigWarehouse:
+    """Warehouse with walls, big boxes and a robot."""
+
+    def __init__(self, text: str) -> None:
+        """Text should be the warehouse part of the data, without instructions."""
+        text = (
+            text.replace(".", "..")
+            .replace("#", "##")
+            .replace("O", "[]")
+            .replace("@", "@.")
+        )
+        matrix = Matrix(text)
+        boxes = set()
+        walls = set()
+        robot_position = (-1, -1)
+        for i in matrix.indices():
+            if matrix.entry(i) == "@":
+                robot_position: Position = i
+            if matrix.entry(i) == "[":
+                boxes.add((i, add(i, (1, 0))))
+            if matrix.entry(i) == "#":
+                walls.add(i)
+        if robot_position == (-1, -1):
+            print("Didn't find robot :(")
+            raise ValueError
+        walls = frozenset(walls)
+        self.walls: frozenset[Position] = walls
+        self.boxes: set[BigBox] = boxes
+        self.robot_position: Position = robot_position
+        self.rows: int = matrix.rows
+        self.cols: int = matrix.cols
+
+    def __str__(self) -> str:
+        output = ""
+        for j in range(self.rows):
+            for i in range(self.cols):
+                if (i, j) in self.walls:
+                    char = "#"
+                elif (i, j) in {x[0] for x in self.boxes}:
+                    char = "["
+                elif (i, j) in {x[1] for x in self.boxes}:
+                    char = "]"
+                elif (i, j) == self.robot_position:
+                    char = "@"
+                else:
+                    char = "."
+                output += char
+            output += "\n"
+        return output
+
+    def is_at_box(self, position: Position) -> None | BigBox:
+        """If there is a box at given position, return said box.
+
+        Note that boxes should never overlap, so there is at most **one** box at
+        any given position.
+        """
+        left_box = (position, add(position, (1, 0)))
+        if left_box in self.boxes:
+            return left_box
+        right_box = (add(position, (-1, 0)), position)
+        if right_box in self.boxes:
+            return right_box
+        return None
+
+    def boxes_to_move(
+        self, direction: Direction, position: Position
+    ) -> None | set[BigBox]:
+        """Determine which boxes should be moved.
+
+        Return None if boxes hit a wall, indicating that the robot should not
+        move.
+        """
+        # Default to robot_position, other positions are only for recursive call
+        next_position = add(position, direction)
+        if next_position in self.walls:
+            return None
+        box = self.is_at_box(next_position)
+        if box is None or position in box:
+            return set()  # Right statement is to avoid infinite recursion: If
+            # the box from the next position is the same box as the current
+            # position, the function would infinitely loop those two
+            # positions.
+
+        res = {box}
+        for box_position in box:
+            next_boxes = self.boxes_to_move(direction, box_position)
+            if next_boxes is None:
+                return None
+            res.update(next_boxes)
+        return res
+
+    @staticmethod
+    def move_box(direction: Direction, box: BigBox) -> BigBox:
+        left_pos, right_pos = box
+        return (add(left_pos, direction), add(right_pos, direction))
+
+    def move_robot(self, direction: Direction) -> None:
+        """Try to push robot in given direction.
+
+        Updates robot_pos and boxes if successful, otherwise does nothing
+        """
+        moving_boxes = self.boxes_to_move(direction, self.robot_position)
+        if moving_boxes is None:
+            return
+        self.robot_position = add(self.robot_position, direction)
+        # if not (moving_boxes := to_move(walls, boxes, d, robot_pos)):
+        #     return robot_pos, boxes
+        self.boxes.difference_update(moving_boxes)
+        self.boxes.update(
+            {self.move_box(direction, box) for box in moving_boxes}
+        )
+
+    @staticmethod
+    def gps_coordinate_box(box: BigBox) -> int:
+        (x, y) = box[0]
+        return x + 100 * y
+
+    def value(self) -> int:
+        return sum(self.gps_coordinate_box(x) for x in self.boxes)
+
+
 test3 = """\
 #######
 #...#.#
@@ -162,89 +284,28 @@ test3 = """\
 """
 
 
-def move_box(d: Direction, box: BigBox) -> BigBox:
-    lb, rb = box
-    return (add(lb, d), add(rb, d))
+def debug(text: str) -> None:
+    matrix, instructions = text.split("\n\n")
+    instructions = instructions.replace("\n", "")
+    directions = [direction(x) for x in instructions]
+    gg = BigWarehouse(matrix)
+    print(gg)
+    for x in directions[:5]:
+        gg.move_robot(x)
+    print(gg)
 
 
-# Separate move functions for left-right and up-down
-def to_move(
-    walls: frozenset[Position], boxes: set[BigBox], d: Direction, current_pos: Position
-) -> None | set[BigBox]:
-    next_pos = add(current_pos, d)
-    if next_pos in walls:
-        return None
-    left_box = (add(next_pos, (-1, 0)), next_pos)
-    right_box = (next_pos, add(next_pos, (1, 0)))
-    # nnext_pos = add(next_pos, step)
-    mover = partial(to_move, walls, boxes, d)
-    # box = (next_pos, nnext_pos) if d == 1 else (nnext_pos, next_pos)
-    # print(box)
-    if left_box in boxes:
-        next_box = left_box
-    elif right_box in boxes:
-        next_box = right_box
-    else:
-        return set()
-    res = {next_box}
-    for pos in next_box:
-        if pos != current_pos:
-            next_boxes = mover(pos)
-            if next_boxes is None:
-                return None
-            res = res | next_boxes
-    return res
-
-
-def debug():
-    matrix, walls, robot_pos, boxes, directions = parse2(test3)
-    # print(gboxes, gpos)
-    if moving := to_move(walls, boxes, (0, -1), (6, 5)):
-        print(moving)
-        print({move_box((-1, 0), b) for b in moving})
-
-
-debug()
-
-
-# def to_move_ud(
-#     walls: frozenset[Position], boxes: set[BigBox], d: int, current_pos: Position
-# ) -> None:
-# return
-
-
-def move_robot_2(
-    walls: frozenset[Position],
-    boxes: set[BigBox],
-    d: Direction,
-    robot_pos: Position,
-) -> tuple[Position, set[BigBox]]:
-    moving_boxes = to_move(walls, boxes, d, robot_pos)
-    if moving_boxes is None:
-        return (robot_pos, boxes)
-    # if not (moving_boxes := to_move(walls, boxes, d, robot_pos)):
-    #     return robot_pos, boxes
-    moved_boxes = {move_box(d, box) for box in moving_boxes}
-    new_boxes = (boxes - moving_boxes) | moved_boxes
-    new_pos = add(robot_pos, d)
-    return (new_pos, new_boxes)
-
-
-def gps_coordinate_box(box: BigBox) -> int:
-    (x, y) = box[0]
-    return x + 100 * y
+# debug(data)
 
 
 def part2(text: str) -> int:
-    matrix, walls, robot_pos, boxes, directions = parse2(text)
-    print(matrix)
-    mover = partial(move_robot_2, walls)
-    for d in directions:
-        matrix.set(robot_pos, ".")
-        (robot_pos, boxes) = mover(boxes, d, robot_pos)
-        matrix.set(robot_pos, "@")
-        # print_path(matrix, {b[0] for b in boxes})
-    return sum(gps_coordinate_box(x) for x in boxes)
+    matrix, instructions = text.split("\n\n")
+    warehouse = BigWarehouse(matrix)
+    instructions = instructions.replace("\n", "")
+    directions = [direction(x) for x in instructions]
+    for x in directions:
+        warehouse.move_robot(x)
+    return warehouse.value()
 
 
 print("Part 2 test:", part2(test))
