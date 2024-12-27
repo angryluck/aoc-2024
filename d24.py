@@ -1,5 +1,4 @@
 from functools import partial
-from typing import Any
 
 from aocd import get_data
 
@@ -149,11 +148,65 @@ print(f"Part 1 real:\n{part1(data)}")
 
 
 # Part 2
+type RecGate = tuple[RecGate, Command, RecGate] | Wire
+type GateState = dict[Wire, RecGate]
+
+
+def parse2(text: str) -> tuple[GateState, Gates]:
+    gate_state_dict = {}
+    wires, gates = text.split("\n\n")
+    for line in wires.split("\n"):
+        w, i = line.split(": ")
+        gate_state_dict[w] = w
+
+    gate_dict = {}
+    for line in gates.split("\n"):
+        w1, logic, w2, _, w3 = line.split(" ")
+        gate_dict[w3] = (logic, w1, w2)
+    return gate_state_dict, gate_dict
+
+
+def set_gate(gate_state: GateState, gates: Gates, wire: Wire) -> RecGate:
+    """Compute the value of a given wire.
+
+    Also updates wire_state to record the new values.
+    """
+    getter = partial(set_gate, gate_state, gates)
+    if wire in gate_state:
+        return gate_state[wire]
+    cmd, w1, w2 = gates[wire]
+    gate_state[wire] = (getter(w1), cmd, getter(w2))
+    return gate_state[wire]
+
+
+def compute_rec_gate(gate_nr: str, rec_gate: RecGate) -> int:
+    """Compute value of rec_gate if xi and yi is set to 1."""
+    fun = partial(compute_rec_gate, gate_nr)
+    match rec_gate:
+        case (w1, cmd, w2):
+            return do_command(cmd, fun(w1), fun(w2))
+        case w if w in (f"x{gate_nr}", f"y{gate_nr}"):
+            return 1
+        case _:
+            return 0
 
 
 def part2(text: str) -> int:
+    gate_state, gates = parse2(text)
+    for w in gates:
+        set_gate(gate_state, gates, w)
+    zs = sorted(x for x in gate_state if x.startswith("z"))
+    print(gate_state[zs[1]])
+    # for z, i in zip(zs, range(len(zs))):
+    #     print(z, end=", ")
+    #     print(i, end=", ")
+    #     print(compute_rec_gate(str(i).zfill(2), gate_state[z]))
+
+    # for x in [1, 2, 3, 4, 5]:
+    #     print(compute_rec_gate(f"0{x}", g))
     return 0
 
 
+part2(data)
 # print(f"Part 2 test:\n{part2(test)}")
 # print(f"Part 2 real:\n{part2(data)}")
