@@ -86,19 +86,27 @@ xd = path(ggwp)
 #     # return sum(save_count(matrix, path, pico, i) for i in range(len(path)))
 
 
-def can_jump(matrix: Matrix, i1: Index, i2: Index, walls: frozenset[Index]) -> bool:
+def can_jump(
+    matrix: Matrix, i1: Index, i2: Index, walls: frozenset[Index]
+) -> bool:
     (x1, y1), (x2, y2) = i1, i2
     mid = ((x1 + x2) // 2, (y1 + y2) // 2)
     return sub(i1, i2) in {(2, 0), (-2, 0), (0, 2), (0, -2)} and mid in walls
 
 
 def save_count(
-    matrix: Matrix, path: list[Index], pico: int, i: int, walls: frozenset[Index]
+    matrix: Matrix,
+    path: list[Index],
+    pico: int,
+    i: int,
+    walls: frozenset[Index],
 ) -> int:
     # Idk why +2, but thats what gave the correct results on test-maze
     current_ind = path[i]
     return sum(
-        1 for ind in path[i + pico + 2 :] if can_jump(matrix, current_ind, ind, walls)
+        1
+        for ind in path[i + pico + 2 :]
+        if can_jump(matrix, current_ind, ind, walls)
     )
 
 
@@ -130,12 +138,15 @@ def part1(text: str, pico: int) -> int:
 jump_20s = []
 for i in range(-20, 21):
     k = 20 - abs(i)
-    for j in range(-k, k + 1):
-        jump_20s.append((i, j))
+    jump_20s.extend((i, j) for j in range(k, k + 1))
+    # for j in range(-k, k + 1):
+    #     jump_20s.append((i, j))
 
 
 mid = {(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)}
-new_jumps: list[Index] = [(x + 20, y + 20) for x, y in jump_20s if (x, y) not in mid]
+new_jumps: list[Index] = [
+    (x + 20, y + 20) for x, y in jump_20s if (x, y) not in mid
+]
 new_jumps2: set[Index] = set(new_jumps)
 print(new_jumps)
 t = "\n".join(["." * 100 for _ in range(100)])
@@ -147,7 +158,8 @@ def can_jumpv2(matrix: Matrix, i1: Index, i2: Index) -> bool:
     (x1, y1), (x2, y2) = i1, i2
     mid = ((x1 + x2) // 2, (y1 + y2) // 2)
     return (
-        sub(i1, i2) in {(2, 0), (-2, 0), (0, 2), (0, -2)} and matrix.entry(mid) == "#"
+        sub(i1, i2) in {(2, 0), (-2, 0), (0, 2), (0, -2)}
+        and matrix.entry(mid) == "#"
     )
 
 
