@@ -1,11 +1,8 @@
-from __future__ import annotations
-
 from functools import cache
-from itertools import chain, product
 
 from aocd import get_data
 
-from util import Matrix, add
+from util import Matrix
 
 # Data
 data = get_data(year=2024, day=21)
@@ -19,47 +16,9 @@ test = """\
 """
 
 
-DIRECTIONS = {(0, -1), (-1, 0), (1, 0), (0, 1)}
-CHAR_TO_DIRECTION = {"^": (0, -1), "<": (-1, 0), ">": (1, 0), "v": (0, 1)}
-DIRECTION_TO_CHAR = {(0, -1): "^", (-1, 0): "<", (1, 0): ">", (0, 1): "v"}
-
-type Direction = tuple[int, int]
 type Index = tuple[int, int]
 type Button = str  # 0-9, >^<v or A
 type Code = str  # A string of buttons
-
-
-def is_straight(code: Code) -> bool:
-    has_changed = False
-    for a, b in zip(code[:-2], code[1:-1]):
-        if a != b:
-            if has_changed:
-                return False
-            has_changed = True
-    return True
-
-
-def filter_min(xs: list) -> list:
-    return [x for x in xs if len(x) == min(len(y) for y in xs)]
-
-
-# For use in Keypad class
-def shortest_paths(indices: set[Index], start: Index, end: Index) -> list[Code]:
-    if start == end:
-        return ["A"]
-    ret = []
-    for d in DIRECTIONS:
-        if (step := add(start, d)) in indices:
-            ret.extend(
-                DIRECTION_TO_CHAR[d] + code
-                for code in shortest_paths(indices - {start}, step, end)
-            )
-            # for path in shortest_paths(indices - {start}, step, end):
-            #     ret.append([start] + path)
-    if not ret:
-        return []
-    ret = filter_min(ret)
-    return [x for x in ret if is_straight(x)]
 
 
 class Keypad:
@@ -78,10 +37,6 @@ class Keypad:
         self._val_to_index = {
             self.matrix.entry(index): index for index in self.indices
         }
-        self._shortest_paths = {
-            (i1, i2): shortest_paths(self.indices, i1, i2)
-            for i1, i2 in product(self.indices, self.indices)
-        }
 
     def index(self, button: Button) -> Index:
         for index in self.indices:
@@ -94,18 +49,8 @@ class Keypad:
             return button
         raise KeyError(index)
 
-    def shortest_paths(
-        self, start: Index | Button, end: Index | Button
-    ) -> list[Code]:
-        if isinstance(start, str):
-            start = self.index(start)
-        if isinstance(end, str):
-            end = self.index(end)
 
-        return self._shortest_paths[(start, end)]
-
-
-numpad = Keypad("""\
+NUMPAD = Keypad("""\
 789
 456
 123
@@ -113,149 +58,154 @@ numpad = Keypad("""\
 """)
 
 
-dpad = Keypad("""\
+DPAD = Keypad("""\
 .^A
 <v>\
 """)
 
 
-# @cache
-def type_code(keypad: Keypad, code: str) -> list[str]:
+def move_right(end: Index, start: Index, buf: Code) -> tuple[Index, Code]:
+    (sx, sy), (ex, _) = start, end
+    while sx < ex:
+        buf += ">"
+        sx += 1
+    return (sx, sy), buf
+
+
+def move_left(end: Index, start: Index, buf: Code) -> tuple[Index, Code]:
+    (sx, sy), (ex, _) = start, end
+    while sx > ex:
+        buf += "<"
+        sx -= 1
+    return (sx, sy), buf
+
+
+def move_up(end: Index, start: Index, buf: Code) -> tuple[Index, Code]:
+    (sx, sy), (_, ey) = start, end
+    while sy > ey:
+        buf += "^"
+        sy -= 1
+    return (sx, sy), buf
+
+
+def move_down(end: Index, start: Index, buf: Code) -> tuple[Index, Code]:
+    (sx, sy), (_, ey) = start, end
+    while sy < ey:
+        buf += "v"
+        sy += 1
+    return (sx, sy), buf
+
+
+def type_numpad_code(code: Code) -> list[Code]:
+    """Only types numpad-codes."""
+    code = "A" + code
+    ret = []
+    max_row = 3
+    for a, b in zip(code[:-1], code[1:]):
+        ret_code = ""
+        start = NUMPAD.index(a)  # Start
+        end = NUMPAD.index(b)  # End
+        # Left column (1,4,7) to bottom row (0,A):
+        if start[0] == 0 and end[1] == max_row:
+            pos, ret_code = move_right(end, start, ret_code)
+            _, ret_code = move_down(end, pos, ret_code)
+        # Bottom row (0, A) to left column (1,,4,7):
+        elif start[1] == max_row and end[0] == 0:
+            pos, ret_code = move_up(end, start, ret_code)
+            _, ret_code = move_left(end, start, ret_code)
+        else:
+            pos = start
+            # This is optimal order (found by trial and error)
+            for fun in move_left, move_down, move_up, move_right:
+                pos, ret_code = fun(end, pos, ret_code)
+        ret_code += "A"
+        ret.append(ret_code)
+    return ret
+
+
+def type_code(code: Code) -> list[Code]:
+    """Only types dpad-codes."""
     code = "A" + code
     ret = []
     for a, b in zip(code[:-1], code[1:]):
-        ret.append(keypad.shortest_paths(a, b))
-    combinations = list(product(*ret))
-    # reduce(...) is equivalent to sum(x, []), i.e. flattening of list
-    combinations_flat = ["".join(x) for x in combinations]
-    return filter_min(combinations_flat)
+        ret_code = ""
+        start = DPAD.index(a)  # Start
+        end = DPAD.index(b)  # End
+        # If start is "<", then go first right, then up
+        if start == (0, 1):
+            pos, ret_code = move_right(end, start, ret_code)
+            _, ret_code = move_up(end, pos, ret_code)
+        # If end is "<", then go first down, then left
+        elif end == (0, 1):
+            pos, ret_code = move_down(end, start, ret_code)
+            _, ret_code = move_left(end, pos, ret_code)
+        # Any other situation, we are in the 2x2 grid, so any order of
+        # up/down/left/right works. The optimal way is to take those
+        # buttons on the pad that are *furthest* away from A first.
+        else:
+            pos = start
+            # up before right is optimal, not sure why
+            for fun in move_left, move_down, move_up, move_right:
+                pos, ret_code = fun(end, pos, ret_code)
+        ret_code += "A"
+        ret.append(ret_code)
+    return ret
 
 
-# Convert data (text) to workable input
-def parse(text: str) -> list[str]:
-    return list(text.split("\n"))
+@cache
+def shortest_length(robots: int, code: Code) -> int:
+    if robots == 0:
+        return len(code)
+    return sum(shortest_length(robots - 1, x) for x in type_code(code))
+
+
+def complexity(robots: int, code: Code) -> int:
+    val = int(code[:-1])
+    length = sum(shortest_length(robots - 1, x) for x in type_numpad_code(code))
+    return length * val
 
 
 def part1(text: str) -> int:
-    code_list = parse(text)
-    retval = 0
-    for code in code_list:
-        print(f"Current code: {code}\r", end="")
-        val = int(code[:-1])
-        type_list = type_code(numpad, code)
-        type_list = filter_min(
-            list(chain.from_iterable(type_code(dpad, x) for x in type_list))
-        )
-        type_list = filter_min(
-            list(chain.from_iterable(type_code(dpad, x) for x in type_list))
-        )
-        # One more iterations, and this is too slow ;(
-        retval += len(type_list[0]) * val
-    print()
-
-    return retval
+    codes = text.split("\n")
+    return sum(complexity(3, x) for x in codes)
 
 
-# print(f"Part 1 test:\n{part1(test)}")
-# print(f"Part 1 real:\n{part1(data)}")
-
-
-def type_path(code: str) -> str:
-    return "".join(type_code(dpad, code))
-
-
-# Part 2
-
-
-def best_path(keypad: Keypad, start: Index, end: Index) -> Code:
-    cs = keypad.shortest_paths(start, end)
-    tmp = {}
-    for i in range(len(cs)):
-        c = cs[i]
-        xs = filter_min(type_code(dpad, c))
-        for _ in range(2):
-            xs = list(chain.from_iterable(type_code(dpad, x) for x in xs))
-            xs = filter_min(xs)
-        tmp[i] = len(xs[0])
-    best_i = min(tmp, key=lambda k: tmp[k])
-    return cs[best_i]
-
-
-BEST_NUMPAD_PATHS = {
-    (numpad.val(i1), numpad.val(i2)): best_path(numpad, i1, i2)
-    for i1, i2 in product(numpad.indices, numpad.indices)
-}
-
-BEST_DPAD_PATHS = {
-    (dpad.val(i1), dpad.val(i2)): best_path(dpad, i1, i2)
-    for i1, i2 in product(dpad.indices, dpad.indices)
-}
-
-# print(BEST_NUMPAD_PATHS)
-# print(BEST_DPAD_PATHS)
-
-
-def type_code_optim(paths: dict, code: str) -> str:
-    code = "A" + code
-    return "".join(paths[a, b] for a, b in zip(code[:-1], code[1:]))
-
-
-print("Starting optimization process:")
-c = type_code_optim(BEST_NUMPAD_PATHS, "029A")
-for i in range(2):
-    print(f"Iteration {i}\r", end="")
-    c = type_code_optim(BEST_DPAD_PATHS, c)
-print()
-print(len(c))
-
-
-def test_shortest_path(i: int) -> None:
-    cs = numpad.shortest_paths((1, 2), (2, 3))
-    c = cs[i]
-    cs = filter_min(type_code(dpad, c))
-    for _ in range(2):
-        cs = list(chain.from_iterable(type_code(dpad, x) for x in cs))
-        print([len(x) for x in cs])
-        cs = filter_min(cs)
-        print([len(x) for x in cs])
-    # Seems that distance is the same, from this point on.
-    ds = type_code(dpad, cs[-2])
-    print(len(ds), len(filter_min(ds)), len(ds[0]))
-    # for x in range(iterations):
-
-
-# for start, end in product(numpad.indices, numpad.indices):
-#     numpad._shortest_paths[start, end] = [best_path(numpad, start, end)]
-
-# print(numpad._shortest_paths)
-
-# print(best_path(numpad, (1, 2), (2, 3)))
-# for p in numpad.shortest_paths((1, 2), (2, 3)):
-#     c = "".join(p)
-#     p2 = type_code(dpad, c)
-#     print(p2)
-#     # for p3 in p2:
-#     #     c2 = "".join(p3)
-#     #     print([len(x) for x in type_code(dpad, c2)])
+print("Part 1 test:", part1(test))
+print("Part 1 real:", part1(data))
 
 
 def part2(text: str) -> int:
-    return 0
+    codes = text.split("\n")
+    return sum(complexity(26, x) for x in codes)
 
 
-# print(f"Part 2 test:\n{part2(test)}")
-# print(f"Part 2 real:\n{part2(data)}")
+print("Part 2 test:", part2(test))
+print("Part 2 real:", part2(data))
 
+# Values from other directions (top result didn't respect the no-go button)
+# 194058481110036: Too low :(
+# 492639922613608: Too high :(
 
-# print(type_code(numpad, "029A"))
-# codes1 = type_code(numpad, "029A")
-# print([len(c) for c in codes1])
-# codes2 = list(chain.from_iterable(type_code(dpad, c) for c in codes1))
-# # codes2 = [type_code(dpad, c) for c in codes1]
-# codes2_min = [x for x in codes2 if len(x) == min(len(y) for y in codes2)]
-# # codes3 = list(chain.from_iterable(type_code(dpad, c) for c in codes2))
-# codes3 = type_code(dpad, codes2_min[0])
-# # print([len(c) for c in codes2])
-# codes3_min = [x for x in codes3 if len(x) == min(len(y) for y in codes3)]
-# # print(codes3_min)
-# # print([len(c) for c in codes3_min])
+# GRAVEYARD
+#
+#
+# # Function meant to help find the optimal path, but found out by just trying
+# # different things instead
+# def possible_typed_codes(code: Code) -> list[set[Code]]:
+#     """1 or 2 possible best codes, for each path."""
+#     ret = []
+#     code = "A" + code
+#     for a, b in zip(code[:-1], code[1:]):
+#         start, end = DPAD.index(a), DPAD.index(b)
+#         if start == (0, 1):
+#             ret.append({code_h_v(start, end)})
+#             continue
+#         if end == (0, 1):
+#             ret.append({code_v_h(start, end)})
+#             continue
+#         ret.append({code_h_v(start, end), code_v_h(start, end)})
+#     return ret
+#
+#
+# def value(code) -> int:
+#     return sum(len(s.pop()) for s in possible_typed_codes(code))
